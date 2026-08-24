@@ -1,7 +1,9 @@
+
 import React, { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { QRCodeCanvas } from "qrcode.react";
 import { supabase } from "../supabaseClient";
+
 
 function BatchDetails() {
   const { batchId } = useParams();
@@ -23,9 +25,8 @@ function BatchDetails() {
   const loadBatch = async () => {
     setLoading(true);
 
-    console.log("Loading batch:", batchId);
+    console.log("Batch ID from URL:", batchId);
 
-    // Get batch
     const { data: batchData, error: batchError } = await supabase
       .from("Batches")
       .select("*")
@@ -33,11 +34,22 @@ function BatchDetails() {
       .single();
 
     if (batchError) {
-      console.error("Batch loading error:", batchError);
-      setBatch(null);
-      setLoading(false);
-      return;
-    }
+  console.error("Batch loading error:", batchError);
+  console.log("Batch ID from URL:", batchId);
+
+  alert(
+    "Batch loading failed.\n\n" +
+    "Batch ID from URL: " +
+    batchId +
+    "\n\n" +
+    "Error: " +
+    batchError.message
+  );
+
+  setBatch(null);
+  setLoading(false);
+  return;
+}
 
     console.log("Batch received:", batchData);
 
@@ -46,7 +58,6 @@ function BatchDetails() {
     setNewStatus(batchData.status || "Created");
     setNewLocation(batchData.location || "");
 
-    // Get history
     const { data: historyData, error: historyError } = await supabase
       .from("batch_history")
       .select("*")
@@ -64,7 +75,6 @@ function BatchDetails() {
     setLoading(false);
   };
 
-  // Load batch when page opens
   useEffect(() => {
     loadBatch();
   }, [batchId]);
@@ -84,10 +94,7 @@ function BatchDetails() {
     const location = newLocation.trim();
 
     try {
-      // -------------------------------------------------
-      // STEP 1: UPDATE CURRENT BATCH
-      // -------------------------------------------------
-
+      // Update current batch
       const { data: updatedBatch, error: batchError } =
         await supabase
           .from("Batches")
@@ -113,10 +120,7 @@ function BatchDetails() {
 
       console.log("Updated batch:", updatedBatch);
 
-      // -------------------------------------------------
-      // STEP 2: ADD UPDATE TO HISTORY
-      // -------------------------------------------------
-
+      // Add update to history
       const { data: historyEntry, error: historyError } =
         await supabase
           .from("batch_history")
@@ -152,10 +156,6 @@ function BatchDetails() {
         historyEntry
       );
 
-      // -------------------------------------------------
-      // STEP 3: UPDATE SCREEN
-      // -------------------------------------------------
-
       setBatch(updatedBatch);
 
       setHistory((previousHistory) => [
@@ -164,7 +164,6 @@ function BatchDetails() {
       ]);
 
       alert("Batch updated successfully!");
-
     } catch (error) {
       console.error("Unexpected error:", error);
 
@@ -177,7 +176,7 @@ function BatchDetails() {
   };
 
   // =====================================================
-  // LOADING SCREEN
+  // LOADING
   // =====================================================
 
   if (loading) {
@@ -224,6 +223,13 @@ function BatchDetails() {
   }
 
   // =====================================================
+  // QR CODE VALUE
+  // =====================================================
+const qrValue =
+  "https://farmtrace-azure.vercel.app/consumer/" +
+    batch.batch_id;
+
+  // =====================================================
   // MAIN PAGE
   // =====================================================
 
@@ -260,7 +266,6 @@ function BatchDetails() {
           Product Information
         </h2>
 
-
         <div style={styles.row}>
           <strong>Product Name</strong>
 
@@ -268,7 +273,6 @@ function BatchDetails() {
             {batch.product_name}
           </span>
         </div>
-
 
         <div style={styles.row}>
           <strong>Quantity</strong>
@@ -278,7 +282,6 @@ function BatchDetails() {
           </span>
         </div>
 
-
         <div style={styles.row}>
           <strong>Harvest Date</strong>
 
@@ -286,7 +289,6 @@ function BatchDetails() {
             {batch.harvest_date}
           </span>
         </div>
-
 
         <div style={styles.row}>
           <strong>Farm / Location</strong>
@@ -296,7 +298,6 @@ function BatchDetails() {
           </span>
         </div>
 
-
         <div style={styles.row}>
           <strong>Farmer Name</strong>
 
@@ -304,7 +305,6 @@ function BatchDetails() {
             {batch.farmer_name}
           </span>
         </div>
-
 
         <div style={styles.row}>
           <strong>Current Status</strong>
@@ -329,9 +329,6 @@ function BatchDetails() {
           Update the current stage and location
           of the agricultural product.
         </p>
-
-
-        {/* STATUS */}
 
         <label style={styles.label}>
           New Status
@@ -372,8 +369,6 @@ function BatchDetails() {
         </select>
 
 
-        {/* LOCATION */}
-
         <label style={styles.label}>
           Current Location
         </label>
@@ -388,8 +383,6 @@ function BatchDetails() {
           style={styles.input}
         />
 
-
-        {/* SAVE BUTTON */}
 
         <button
           onClick={handleUpdate}
@@ -422,7 +415,6 @@ function BatchDetails() {
           batch.
         </p>
 
-
         {history.length === 0 ? (
 
           <p>
@@ -442,18 +434,15 @@ function BatchDetails() {
                 ✓
               </div>
 
-
               <div style={styles.historyContent}>
 
                 <strong style={styles.historyStatus}>
                   {item.status}
                 </strong>
 
-
                 <p style={styles.historyLocation}>
                   📍 Location: {item.location}
                 </p>
-
 
                 <small>
                   🕒{" "}
@@ -473,7 +462,9 @@ function BatchDetails() {
       </div>
 
 
-      {/* QR CODE */}
+      {/* =====================================================
+          QR CODE
+      ===================================================== */}
 
       <div style={styles.qrSection}>
 
@@ -481,15 +472,22 @@ function BatchDetails() {
           Batch QR Code
         </h2>
 
-        <p>
+        <p style={styles.description}>
           Scan this QR code to view the
           product traceability information.
         </p>
 
-        <QRCodeCanvas
-          value={`${window.location.origin}/consumer/${batch.batch_id}`}
-          size={200}
-        />
+        <div style={styles.qrBox}>
+
+          <QRCodeCanvas
+            value={qrValue}
+            size={200}
+            bgColor="#ffffff"
+            fgColor="#000000"
+            level="H"
+          />
+
+        </div>
 
         <p style={styles.qrId}>
           Batch ID: {batch.batch_id}
@@ -660,13 +658,28 @@ const styles = {
     marginBottom: "5px",
   },
 
+  // =====================================================
+  // QR CODE STYLES
+  // =====================================================
+
   qrSection: {
     maxWidth: "800px",
     margin: "0 auto 25px",
     padding: "30px",
-    background: "#f8fafc",
+    background: "white",
     borderRadius: "12px",
     textAlign: "center",
+    boxShadow:
+      "0 2px 10px rgba(0,0,0,0.06)",
+  },
+
+  qrBox: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: "20px",
+    padding: "20px",
+    background: "#ffffff",
   },
 
   qrId: {
